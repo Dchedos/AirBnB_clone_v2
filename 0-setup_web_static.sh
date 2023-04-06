@@ -6,8 +6,8 @@ sudo apt update
 sudo apt -y install nginx
 
 # create project directories
-mkdir -p /data/web_static/shared/
-mkdir -p /data/web_static/releases/test/
+sudo mkdir -p /data/web_static/shared/
+sudo mkdir -p /data/web_static/releases/test/
 
 # create initial html
 cat << EOF | tee /data/web_static/releases/test/index.html
