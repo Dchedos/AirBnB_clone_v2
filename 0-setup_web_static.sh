@@ -26,4 +26,4 @@ chown -R ubuntu:ubuntu /data/
 
 # set up nginx server configuration
 sed -i '/listen 80 default_server/a location /hbnb_static/ { alias /data/web_static/current/;}' /etc/nginx/sites-available/default
-service nginx restart
+sudo service nginx restart
