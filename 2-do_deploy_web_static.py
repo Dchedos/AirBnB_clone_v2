@@ -1,34 +1,35 @@
 #!/usr/bin/python3
-'''script that generates a .tgz archive from the contents of
-the web_static, using the function do_pack and that distributes
-the archive to your web servers using do_deploy
-'''
+"""Distributes an archive to your web servers, using the function do_deploy"""
 
-from fabric.api import local, run, put, get, env
+from fabric.contrib import files
 from datetime import datetime
+from fabric.api import *
 import os
 
 env.hosts = ['52.90.23.6', '52.207.96.101']
+env.user = 'ubuntu'
+env.key_filename = '~/.ssh/school'
 
 
 def do_deploy(archive_path):
-    '''distributes an archive to your web servers
-    '''
-    if not os.path.exists(archive_path):  # check if path exists
+    """Function for deploy"""
+    if not os.path.exists(archive_path):
         return False
-    try:
-        archive_name = archive_path.split('/')[-1]
-        destination = "/data/web_static/releases/{}".format(archive_name[:-4])
-        put(archive_path, '/tmp/')
 
-        run('sudo mkdir -p {}'.format(destination))
-        run('sudo tar -xzf /tmp/{} -C {}'.format(archive_name, destination))
-        run('sudo rm /tmp/{}'.format(archive_name))
-        run('sudo mv {}/web_static/* {}'.format(destination, destination))
-        run('sudo rm -rf {}/web_static'.format(destination))
-        run("if [ -L /data/web_static/current ];\
-                then rm /data/web_static/current; fi")
-        run('sudo ln -s {} /data/web_static/current'.format(destination))
+    data_path = '/data/web_static/releases/'
+    tmp = archive_path.split('.')[0]
+    name = tmp.split('/')[1]
+    dest = data_path + name
+
+    try:
+        put(archive_path, '/tmp')
+        run('mkdir -p {}'.format(dest))
+        run('tar -xzf /tmp/{}.tgz -C {}'.format(name, dest))
+        run('rm -f /tmp/{}.tgz'.format(name))
+        run('mv {}/web_static/* {}/'.format(dest, dest))
+        run('rm -rf {}/web_static'.format(dest))
+        run('rm -rf /data/web_static/current')
+        run('ln -s {} /data/web_static/current'.format(dest))
         print("\nNew Version Deployed !!!")
         return True
     except BaseException:
