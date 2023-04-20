@@ -1,36 +1,51 @@
 #!/usr/bin/python3
-"""Distributes an archive to your web servers, using the function do_deploy"""
+"""
+A Fabric script that generates a .tgz archive from the
+contents of the web_static folder of AirBnB Clone repo, using
+the function `do_pack`.
 
-from fabric.contrib import files
+
+from fabric.api import local, env, run, put
 from datetime import datetime
-from fabric.api import *
 import os
 
 env.hosts = ['52.90.23.6', '52.207.96.101']
 env.user = 'ubuntu'
-env.key_filename = '~/.ssh/school'
+
+
+def do_pack():
+    """Compress the contents of web_static"""
+
+    #  create `versions` dir if not exists
+    local('mkdir -p versions')
+
+    #  create compressed tgz file
+    time_stamp = datetime.now().strftime('%Y%m%d%H%M%S')
+    path = 'versions/web_static_' + time_stamp + '.tgz'
+    result = local('tar -cvzf {} web_static/'.format(path))
+    if result.succeeded:
+        return path
+    else:
+        return None
 
 
 def do_deploy(archive_path):
-    """Function for deploy"""
+    """distributes an archive to env.hosts web servers"""
+
+    #  if empty argument passed
     if not os.path.exists(archive_path):
         return False
 
-    data_path = '/data/web_static/releases/'
-    tmp = archive_path.split('.')[0]
-    name = tmp.split('/')[1]
-    dest = data_path + name
+    basename = os.path.basename(archive_path)
+    path = basename.replace('.tgz', '')
+    path = '/data/web_static/releases/{}'.format(path)
 
-    try:
-        put(archive_path, '/tmp')
-        run('mkdir -p {}'.format(dest))
-        run('tar -xzf /tmp/{}.tgz -C {}'.format(name, dest))
-        run('rm -f /tmp/{}.tgz'.format(name))
-        run('mv {}/web_static/* {}/'.format(dest, dest))
-        run('rm -rf {}/web_static'.format(dest))
-        run('rm -rf /data/web_static/current')
-        run('ln -s {} /data/web_static/current'.format(dest))
-        print("\nNew Version Deployed !!!")
-        return True
-    except BaseException:
-        return False
+    #  upload archive to server
+    put(archive_path, '/tmp/')
+    run('mkdir -p {}'.format(path))
+    run('tar -xvzf /tmp/{} -C {}'.format(basename, path))
+    run('mv {}/web_static/* {}'.format(path, path))
+    run('rm -rf {}/web_static/'.format(path))
+    run('rm /data/web_static/current')
+    run('ln -s {} /data/web_static/current'.format(path))
+    return True
